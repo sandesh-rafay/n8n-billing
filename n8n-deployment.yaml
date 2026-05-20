@@ -34,6 +34,12 @@ spec:
                 name: n8n-config
             - secretRef:
                 name: n8n-secret
+          env:
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pg-secrets
+                  key: pg.password
         - name: workflow-importer
           image: registry.dev.rafay-edge.net/rafay/push-events-n8n:1.0
           command:
@@ -49,6 +55,12 @@ spec:
                 name: n8n-config
             - secretRef:
                 name: n8n-secret
+          env:
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pg-secrets
+                  key: pg.password
       containers:
         - name: n8n
           image: registry.dev.rafay-edge.net/rafay/push-events-n8n:1.0
@@ -59,6 +71,12 @@ spec:
                 name: n8n-config
             - secretRef:
                 name: n8n-secret
+          env:
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pg-secrets
+                  key: pg.password
           readinessProbe:
             httpGet:
               path: /healthz
