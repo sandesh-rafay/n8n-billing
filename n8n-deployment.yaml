@@ -46,8 +46,8 @@ spec:
             - sh
             - -c
             - |
-              printf '[{"id":"b8d3e4f5-1234-5678-9abc-000000000001","name":"Postgres","type":"postgres","data":{"host":"%s","port":%s,"database":"%s","user":"%s","password":"%s","ssl":"disable","sshTunnel":false}}]' \
-                "${DB_POSTGRESDB_HOST}" "${DB_POSTGRESDB_PORT}" "${DB_POSTGRESDB_DATABASE}" "${DB_POSTGRESDB_USER}" "${DB_POSTGRESDB_PASSWORD}" > /tmp/pg-cred.json
+              printf '[{"id":"b8d3e4f5-1234-5678-9abc-000000000001","name":"Postgres","type":"postgres","data":{"host":"%s","port":%s,"database":"postgres","user":"%s","password":"%s","ssl":"disable","sshTunnel":false}}]' \
+                "${DB_POSTGRESDB_HOST}" "${DB_POSTGRESDB_PORT}" "${DB_POSTGRESDB_USER}" "${DB_POSTGRESDB_PASSWORD}" > /tmp/pg-cred.json
               n8n import:credentials --input=/tmp/pg-cred.json
               n8n import:workflow --input=/home/node/workflows/post-events-workflow.json
           envFrom:
