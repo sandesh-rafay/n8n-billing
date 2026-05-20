@@ -9,8 +9,8 @@ NAMESPACE  := rafay-core
 all: build deploy
 
 build:
-	docker build -t $(IMAGE_NAME) .
-	docker push $(IMAGE_NAME)
+	-docker buildx create --use
+	docker buildx build --platform=linux/amd64,linux/arm64 --provenance=false --push -t $(IMAGE_NAME) .
 	@echo "Built and pushed: $(IMAGE_NAME)"
 
 deploy:
