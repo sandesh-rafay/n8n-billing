@@ -1,0 +1,135 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+  namespace: rafay-core
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n
+  template:
+    metadata:
+      labels:
+        app: n8n
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+        - name: db-setup
+          image: postgres:13-alpine
+          securityContext:
+            runAsUser: 0
+          command:
+            - sh
+            - -c
+            - |
+              PGPASSWORD=$DB_POSTGRESDB_PASSWORD psql -h postgres-admin -U postgres -d postgres -c "CREATE DATABASE n8n;" 2>/dev/null || true
+              PGPASSWORD=$DB_POSTGRESDB_PASSWORD psql -h postgres-admin -U postgres -d postgres -c "CREATE TABLE IF NOT EXISTS n8n_billing_state (key TEXT PRIMARY KEY, value TEXT);" 2>&1
+          env:
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: DB_POSTGRESDB_PASSWORD
+        - name: workflow-importer
+          image: registry.dev.rafay-edge.net/rafay/push-events-n8n:1.0
+          command:
+            - sh
+            - -c
+            - |
+              printf '[{"id":"b8d3e4f5-1234-5678-9abc-000000000001","name":"Postgres","type":"postgres","data":{"host":"postgres-admin","port":5432,"database":"postgres","user":"postgres","password":"%s","ssl":"disable","sshTunnel":false}}]' "${DB_POSTGRESDB_PASSWORD}" > /tmp/pg-cred.json
+              n8n import:credentials --input=/tmp/pg-cred.json
+              n8n import:workflow --input=/home/node/workflows/post-events-workflow.json
+          env:
+            - name: N8N_PORT
+              value: "5678"
+            - name: DB_TYPE
+              value: "postgresdb"
+            - name: DB_POSTGRESDB_HOST
+              value: "postgres-admin"
+            - name: DB_POSTGRESDB_PORT
+              value: "5432"
+            - name: DB_POSTGRESDB_DATABASE
+              value: "n8n"
+            - name: DB_POSTGRESDB_USER
+              value: "postgres"
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: DB_POSTGRESDB_PASSWORD
+            - name: N8N_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_ENCRYPTION_KEY
+      containers:
+        - name: n8n
+          image: registry.dev.rafay-edge.net/rafay/push-events-n8n:1.0
+          ports:
+            - containerPort: 5678
+          env:
+            - name: N8N_HOST
+              value: "0.0.0.0"
+            - name: N8N_PORT
+              value: "5678"
+            - name: N8N_SECURE_COOKIE
+              value: "false"
+            - name: N8N_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: N8N_ENCRYPTION_KEY
+            - name: DB_TYPE
+              value: "postgresdb"
+            - name: DB_POSTGRESDB_HOST
+              value: "postgres-admin"
+            - name: DB_POSTGRESDB_PORT
+              value: "5432"
+            - name: DB_POSTGRESDB_DATABASE
+              value: "n8n"
+            - name: DB_POSTGRESDB_USER
+              value: "postgres"
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: n8n-secret
+                  key: DB_POSTGRESDB_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 5678
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5678
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n
+  namespace: rafay-core
+spec:
+  selector:
+    app: n8n
+  ports:
+    - name: http
+      port: 5678
+      targetPort: 5678
+      nodePort: 30678
+  type: NodePort

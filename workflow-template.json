@@ -1,0 +1,158 @@
+{
+  "id": "7f1e8a2b-3c4d-5e6f-7890-abcdef123456",
+  "name": "Post Events",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 0],
+      "id": "89052fcc-8b2a-4003-8d43-84fa5b1a926a",
+      "name": "Fetch Events on Schedule"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE((SELECT value FROM n8n_billing_state WHERE key = 'previous_run'), '') AS value"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [208, 0],
+      "id": "b1c2d3e4-f5a6-7b8c-9d0e-f1a2b3c4d5e6",
+      "name": "Read Timestamp",
+      "continueOnFail": true,
+      "credentials": {
+        "postgres": {
+          "id": "b8d3e4f5-1234-5678-9abc-000000000001",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "__CALCULATE_TIME_WINDOW__"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [416, 0],
+      "id": "a96ae1ec-65a4-427f-bb85-98997cb04f94",
+      "name": "Calculate Time Window"
+    },
+    {
+      "parameters": {
+        "url": "https://YOUR_CONTROLLER_URL/apis/dashboard.envmgmt.io/v1/events/paas/partner/kind/compute/instance",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "range_from",
+              "value": "={{ $json.range_from }}"
+            },
+            {
+              "name": "range_to",
+              "value": "={{ $json.range_to }}"
+            },
+            {
+              "name": "limit",
+              "value": "30"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "pagination": {
+            "pagination": {
+              "parameters": {
+                "parameters": [
+                  {
+                    "name": "offset",
+                    "value": "={{ $pageCount*30 }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ $response.body.offset + $response.body.limit >= $response.body.count }}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [660, 0],
+      "id": "aa5d7665-5d3e-45c4-8d17-274c9cdab01e",
+      "name": "Pull Compute Instance Events",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "__FILTER_BILLABLE_EVENTS__"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0],
+      "id": "d2e9e62a-38e6-4ca9-bf9a-ccd63245e778",
+      "name": "Filter Billable Events"
+    },
+    {
+      "parameters": {
+        "jsCode": "__FORWARD_EVENTS__"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 0],
+      "id": "aa83e96e-6a69-4018-9335-0710bf5ca637",
+      "name": "Forward Events to Billing Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO n8n_billing_state (key, value) VALUES ('previous_run', '{{ $(\"Calculate Time Window\").first().json.range_to }}') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1320, 0],
+      "id": "e6d5c4b3-a2f1-0e9d-8c7b-6a5f4e3d2c1b",
+      "name": "Write Timestamp",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "b8d3e4f5-1234-5678-9abc-000000000001",
+          "name": "Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Fetch Events on Schedule": {
+      "main": [[{ "node": "Read Timestamp", "type": "main", "index": 0 }]]
+    },
+    "Read Timestamp": {
+      "main": [[{ "node": "Calculate Time Window", "type": "main", "index": 0 }]]
+    },
+    "Calculate Time Window": {
+      "main": [[{ "node": "Pull Compute Instance Events", "type": "main", "index": 0 }]]
+    },
+    "Pull Compute Instance Events": {
+      "main": [[{ "node": "Filter Billable Events", "type": "main", "index": 0 }]]
+    },
+    "Filter Billable Events": {
+      "main": [[{ "node": "Forward Events to Billing Workflow", "type": "main", "index": 0 }]]
+    },
+    "Forward Events to Billing Workflow": {
+      "main": [[{ "node": "Write Timestamp", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true
+}
