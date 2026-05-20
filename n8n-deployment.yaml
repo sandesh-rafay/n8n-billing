@@ -41,7 +41,7 @@ spec:
                   name: pg-secrets
                   key: pg.password
         - name: workflow-importer
-          image: registry.dev.rafay-edge.net/rafay/push-events-n8n:1.0
+          image: registry.dev.rafay-edge.net/rafay/push-events-n8n:latest
           command:
             - sh
             - -c
@@ -63,7 +63,7 @@ spec:
                   key: pg.password
       containers:
         - name: n8n
-          image: registry.dev.rafay-edge.net/rafay/push-events-n8n:1.0
+          image: registry.dev.rafay-edge.net/rafay/push-events-n8n:latest
           ports:
             - containerPort: 5678
           envFrom:
