@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const template = JSON.parse(fs.readFileSync('workflow-template.json', 'utf8'));
+const template = JSON.parse(fs.readFileSync('templates/workflow-template.json', 'utf8'));
 
 template.nodes.forEach(node => {
   const code = node.parameters?.jsCode;

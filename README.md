@@ -12,7 +12,8 @@ n8n-separate-workflow-files/
 │   ├── calculate-time-window.js     ← JS for Calculate Time Window node
 │   ├── filter-billable-events.js    ← JS for Filter Billable Events node
 │   └── forward-events.js            ← JS for Forward Events node
-├── workflow-template.json           ← workflow with __PLACEHOLDER__ where JS goes
+├── templates/
+│   └── workflow-template.json       ← workflow with __PLACEHOLDER__ where JS goes
 ├── build-workflow.js                ← injects JS files into template (runs inside Docker)
 ├── Dockerfile                       ← multi-stage: builds workflow JSON, packages into n8n image
 ├── n8n-config.yaml                  ← non-sensitive config (postgres host, port, user, db)
@@ -29,7 +30,7 @@ n8n-separate-workflow-files/
 ## How It Works
 
 ```
-codes/*.js  +  workflow-template.json
+codes/*.js  +  templates/workflow-template.json
                     ↓  (inside Docker multi-stage build)
             node build-workflow.js
                     ↓
@@ -71,7 +72,7 @@ The postgres password is read directly from the cluster's existing `pg-secrets` 
 
 To add a new Code node:
 1. Add `codes/my-new-node.js`
-2. Add the node to `workflow-template.json` with `"jsCode": "__MY_NEW_NODE__"`
+2. Add the node to `templates/workflow-template.json` with `"jsCode": "__MY_NEW_NODE__"`
 3. Run `make build`
 
 ---

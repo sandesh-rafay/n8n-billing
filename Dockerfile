@@ -1,7 +1,7 @@
 FROM node:18-alpine AS builder
 WORKDIR /app
 COPY codes/ ./codes/
-COPY workflow-template.json .
+COPY templates/ ./templates/
 COPY build-workflow.js .
 RUN node build-workflow.js
 
